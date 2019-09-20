@@ -95,11 +95,11 @@ func logLevelToInt(level string) int {
 
 // Config holds configuration options for a logger object.
 type Config struct {
-	Prefix       string            `json:"prefix" yaml:"prefix"`
-	LogLevel     string            `json:"level" yaml:"level"`
-	AddTimeStamp bool              `json:"add_timestamp" yaml:"add_timestamp"`
-	JSONFormat   bool              `json:"json_format" yaml:"json_format"`
-	StaticFields map[string]string `json:"static_fields" yaml:"static_fields"`
+	Prefix       string                 `json:"prefix" yaml:"prefix"`
+	LogLevel     string                 `json:"level" yaml:"level"`
+	AddTimeStamp bool                   `json:"add_timestamp" yaml:"add_timestamp"`
+	JSONFormat   bool                   `json:"json_format" yaml:"json_format"`
+	StaticFields map[string]interface{} `json:"static_fields" yaml:"static_fields"`
 }
 
 // NewConfig returns a config struct with the default values for each field.
@@ -109,7 +109,7 @@ func NewConfig() Config {
 		LogLevel:     "INFO",
 		AddTimeStamp: true,
 		JSONFormat:   true,
-		StaticFields: map[string]string{
+		StaticFields: map[string]interface{}{
 			"@service": "benthos",
 		},
 	}
@@ -213,7 +213,7 @@ func (l *Logger) NewModule(prefix string) Modular {
 
 // WithFields returns a logger with new fields added to the JSON formatted
 // output.
-func (l *Logger) WithFields(fields map[string]string) Modular {
+func (l *Logger) WithFields(fields map[string]interface{}) Modular {
 	newConfig := l.config
 	newConfig.StaticFields = fields
 	for k, v := range l.config.StaticFields {
@@ -238,7 +238,7 @@ func (l *Logger) WithFields(fields map[string]string) Modular {
 
 // WithFields attempts to cast the Modular implementation into an interface that
 // implements WithFields, and if successful returns the result.
-func WithFields(l Modular, fields map[string]string) Modular {
+func WithFields(l Modular, fields map[string]interface{}) Modular {
 	return l.WithFields(fields)
 }
 

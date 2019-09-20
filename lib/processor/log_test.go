@@ -39,11 +39,11 @@ type mockLog struct {
 	infos  []string
 	warns  []string
 	errors []string
-	fields []map[string]string
+	fields []map[string]interface{}
 }
 
 func (m *mockLog) NewModule(prefix string) log.Modular { return m }
-func (m *mockLog) WithFields(fields map[string]string) log.Modular {
+func (m *mockLog) WithFields(fields map[string]interface{}) log.Modular {
 	m.fields = append(m.fields, fields)
 	return m
 }
@@ -131,7 +131,7 @@ func TestLogWithFields(t *testing.T) {
 	conf := NewConfig()
 	conf.Type = TypeLog
 	conf.Log.Message = "${!json_field:foo}"
-	conf.Log.Fields = map[string]string{
+	conf.Log.Fields = map[string]interface{}{
 		"static":  "foo",
 		"dynamic": "${!json_field:bar}",
 	}
@@ -160,10 +160,10 @@ func TestLogWithFields(t *testing.T) {
 	if exp, act := 2, len(logMock.fields); exp != act {
 		t.Fatalf("Wrong count of fields: %v != %v", act, exp)
 	}
-	if exp, act := map[string]string{"static": "foo"}, logMock.fields[0]; !reflect.DeepEqual(exp, act) {
+	if exp, act := map[string]interface{}{"static": "foo"}, logMock.fields[0]; !reflect.DeepEqual(exp, act) {
 		t.Errorf("Wrong field output: %v != %v", act, exp)
 	}
-	if exp, act := map[string]string{"dynamic": "with fields"}, logMock.fields[1]; !reflect.DeepEqual(exp, act) {
+	if exp, act := map[string]interface{}{"dynamic": "with fields"}, logMock.fields[1]; !reflect.DeepEqual(exp, act) {
 		t.Errorf("Wrong field output: %v != %v", act, exp)
 	}
 
@@ -183,13 +183,84 @@ func TestLogWithFields(t *testing.T) {
 	if exp, act := 3, len(logMock.fields); exp != act {
 		t.Fatalf("Wrong count of fields: %v != %v", act, exp)
 	}
-	if exp, act := map[string]string{"static": "foo"}, logMock.fields[0]; !reflect.DeepEqual(exp, act) {
+	if exp, act := map[string]interface{}{"static": "foo"}, logMock.fields[0]; !reflect.DeepEqual(exp, act) {
 		t.Errorf("Wrong field output: %v != %v", act, exp)
 	}
-	if exp, act := map[string]string{"dynamic": "with fields"}, logMock.fields[1]; !reflect.DeepEqual(exp, act) {
+	if exp, act := map[string]interface{}{"dynamic": "with fields"}, logMock.fields[1]; !reflect.DeepEqual(exp, act) {
 		t.Errorf("Wrong field output: %v != %v", act, exp)
 	}
-	if exp, act := map[string]string{"dynamic": "with fields 2"}, logMock.fields[2]; !reflect.DeepEqual(exp, act) {
+	if exp, act := map[string]interface{}{"dynamic": "with fields 2"}, logMock.fields[2]; !reflect.DeepEqual(exp, act) {
+		t.Errorf("Wrong field output: %v != %v", act, exp)
+	}
+}
+
+func TestLogWithComplexFields(t *testing.T) {
+	conf := NewConfig()
+	conf.Type = TypeLog
+	conf.Log.Message = "${!json_field:foo}"
+	conf.Log.Fields = map[string]interface{}{
+		"static":  "foo",
+		"dynamic": "${!json_field:bar}",
+		"nested": map[string]interface{}{
+			"static":  "baz",
+			"dynamic": "${!json_field:qux}",
+		},
+	}
+
+	logMock := &mockLog{}
+
+	conf.Log.Level = "INFO"
+	l, err := New(conf, nil, logMock, metrics.Noop())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	input := message.New([][]byte{[]byte(`{"foo":"info message","bar":"with fields"}`)})
+	expMsgs := []types.Message{input}
+	actMsgs, res := l.ProcessMessage(input)
+	if res != nil {
+		t.Fatal(res.Error())
+	}
+	if !reflect.DeepEqual(expMsgs, actMsgs) {
+		t.Errorf("Wrong message passthrough: %s != %s", actMsgs, expMsgs)
+	}
+
+	if exp, act := []string{"info message"}, logMock.infos; !reflect.DeepEqual(exp, act) {
+		t.Errorf("Wrong log output: %v != %v", act, exp)
+	}
+	if exp, act := 2, len(logMock.fields); exp != act {
+		t.Fatalf("Wrong count of fields: %v != %v", act, exp)
+	}
+	if exp, act := map[string]interface{}{"static": "foo"}, logMock.fields[0]; !reflect.DeepEqual(exp, act) {
+		t.Errorf("Wrong field output: %v != %v", act, exp)
+	}
+	if exp, act := map[string]interface{}{"dynamic": "with fields"}, logMock.fields[1]; !reflect.DeepEqual(exp, act) {
+		t.Errorf("Wrong field output: %v != %v", act, exp)
+	}
+
+	input = message.New([][]byte{[]byte(`{"foo":"info message 2","bar":"with fields 2"}`)})
+	expMsgs = []types.Message{input}
+	actMsgs, res = l.ProcessMessage(input)
+	if res != nil {
+		t.Fatal(res.Error())
+	}
+	if !reflect.DeepEqual(expMsgs, actMsgs) {
+		t.Errorf("Wrong message passthrough: %s != %s", actMsgs, expMsgs)
+	}
+
+	if exp, act := []string{"info message", "info message 2"}, logMock.infos; !reflect.DeepEqual(exp, act) {
+		t.Errorf("Wrong log output: %v != %v", act, exp)
+	}
+	if exp, act := 3, len(logMock.fields); exp != act {
+		t.Fatalf("Wrong count of fields: %v != %v", act, exp)
+	}
+	if exp, act := map[string]interface{}{"static": "foo"}, logMock.fields[0]; !reflect.DeepEqual(exp, act) {
+		t.Errorf("Wrong field output: %v != %v", act, exp)
+	}
+	if exp, act := map[string]interface{}{"dynamic": "with fields"}, logMock.fields[1]; !reflect.DeepEqual(exp, act) {
+		t.Errorf("Wrong field output: %v != %v", act, exp)
+	}
+	if exp, act := map[string]interface{}{"dynamic": "with fields 2"}, logMock.fields[2]; !reflect.DeepEqual(exp, act) {
 		t.Errorf("Wrong field output: %v != %v", act, exp)
 	}
 }

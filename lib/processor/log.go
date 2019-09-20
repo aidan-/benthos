@@ -81,16 +81,16 @@ log:
 
 // LogConfig contains configuration fields for the Log processor.
 type LogConfig struct {
-	Level   string            `json:"level" yaml:"level"`
-	Fields  map[string]string `json:"fields" yaml:"fields"`
-	Message string            `json:"message" yaml:"message"`
+	Level   string                 `json:"level" yaml:"level"`
+	Fields  map[string]interface{} `json:"fields" yaml:"fields"`
+	Message string                 `json:"message" yaml:"message"`
 }
 
 // NewLogConfig returns a LogConfig with default values.
 func NewLogConfig() LogConfig {
 	return LogConfig{
 		Level:   "INFO",
-		Fields:  map[string]string{},
+		Fields:  map[string]interface{}{},
 		Message: "",
 	}
 }
@@ -117,12 +117,21 @@ func NewLog(
 		message: text.NewInterpolatedString(conf.Log.Message),
 	}
 	if len(conf.Log.Fields) > 0 {
-		staticFields := map[string]string{}
+		staticFields := map[string]interface{}{}
 		for k, v := range conf.Log.Fields {
-			if text.ContainsFunctionVariables([]byte(v)) {
-				l.fields[k] = text.NewInterpolatedString(v)
-			} else {
-				staticFields[k] = v
+			switch vf := v.(type) {
+			case int:
+				staticFields[k] = vf
+			case string:
+				if text.ContainsFunctionVariables([]byte(vf)) {
+					l.fields[k] = text.NewInterpolatedString(vf)
+				} else {
+					staticFields[k] = vf
+				}
+			case map[string]interface{}:
+				staticFields[k] = "banana"
+			default:
+				return nil, fmt.Errorf("this is bad. unknown type")
 			}
 		}
 		if len(staticFields) > 0 {
@@ -170,7 +179,7 @@ func (l *Log) levelToLogFn(level string) (func(logger log.Modular, msg string), 
 func (l *Log) ProcessMessage(msg types.Message) ([]types.Message, types.Response) {
 	targetLog := l.log
 	if len(l.fields) > 0 {
-		interpFields := make(map[string]string, len(l.fields))
+		interpFields := make(map[string]interface{}, len(l.fields))
 		for k, vi := range l.fields {
 			interpFields[k] = vi.Get(msg)
 		}

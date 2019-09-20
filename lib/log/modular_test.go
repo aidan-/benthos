@@ -71,7 +71,7 @@ func TestStaticFields(t *testing.T) {
 	loggerConfig.JSONFormat = true
 	loggerConfig.Prefix = "root"
 	loggerConfig.LogLevel = "WARN"
-	loggerConfig.StaticFields = map[string]string{
+	loggerConfig.StaticFields = map[string]interface{}{
 		"@service": "benthos_service",
 		"@system":  "foo",
 	}
@@ -101,7 +101,7 @@ func TestStaticFieldsOverride(t *testing.T) {
 	loggerConfig.JSONFormat = true
 	loggerConfig.Prefix = "root"
 	loggerConfig.LogLevel = "WARN"
-	loggerConfig.StaticFields = map[string]string{
+	loggerConfig.StaticFields = map[string]interface{}{
 		"@service": "benthos_service",
 		"@system":  "foo",
 	}
@@ -111,7 +111,7 @@ func TestStaticFieldsOverride(t *testing.T) {
 	logger := New(&buf, loggerConfig)
 	logger.Warnf("Warning message root module")
 
-	logger2 := WithFields(logger, map[string]string{"foo": "bar", "@service": "fooserve"})
+	logger2 := WithFields(logger, map[string]interface{}{"foo": "bar", "@service": "fooserve"})
 	logger2.Warnln("Warning message foo fields")
 
 	logger.Warnf("Warning message root module\n")
@@ -132,7 +132,7 @@ func TestStaticFieldsEmpty(t *testing.T) {
 	loggerConfig.JSONFormat = true
 	loggerConfig.Prefix = "root"
 	loggerConfig.LogLevel = "WARN"
-	loggerConfig.StaticFields = map[string]string{}
+	loggerConfig.StaticFields = map[string]interface{}{}
 
 	buf := LogBuffer{data: ""}
 

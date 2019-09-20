@@ -61,7 +61,7 @@ func (l *wrapped) NewModule(prefix string) Modular {
 //------------------------------------------------------------------------------
 
 // WithFields is a no-op.
-func (l *wrapped) WithFields(fields map[string]string) Modular {
+func (l *wrapped) WithFields(fields map[string]interface{}) Modular {
 	return l
 }
 
